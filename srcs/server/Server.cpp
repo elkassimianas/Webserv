@@ -34,14 +34,14 @@ bool	Server::check_header(std::string &request)
 	return (true);
 }
 
-void	Server::readSocket(int fd)
+void	Server::readSocket(int index)
 {
 	char			buf[1025];
 	char			*body = NULL;
-	ParsingRequest	objRequest = this->map_Clients[fd];
+	ParsingRequest	objRequest = this->map_Clients[vClient_socket[index]];
 	std::string		request = objRequest.get_request();
 	bzero(&buf, 1025);
-	while(recv(fd, &buf, 1024, 0) > 0)
+	while(recv(vClient_socket[index], &buf, 1024, 0) > 0)
 	{
 		std::cout << buf << std::endl;
 		request += buf;
@@ -64,11 +64,12 @@ void	Server::selecter(void)
 	// because select is destructive
 	this->read_sockets = this->current_sockets;
 	this->write_sockets = this->current_sockets;
-	//int maxFd;
+	int maxFd;
 
-	//maxFd = (this->vClient_socket.empty()) ? this->server_socket: this->vClient_socket.back();
+	maxFd = (this->vClient_socket.empty()) ? this->server_socket: this->vClient_socket.back();
+	maxFd++;
 
-	if (select(FD_SETSIZE, &this->read_sockets, &this->write_sockets, NULL, NULL) < 0)
+	if (select(maxFd, &this->read_sockets, &this->write_sockets, NULL, NULL) < 0)
 	{
 		perror("select error");
 		exit(EXIT_FAILURE);
@@ -106,16 +107,16 @@ void	Server::launch(void)
 		std::cout << "============ WAITING 	=============" << std::endl;
 		selecter();
 		accepter();
-		for(size_t i = 0; i < FD_SETSIZE; i++)
+		for(size_t i = 0; i < vClient_socket.size(); i++)
 		{
 			std::cout << "start loop" << std::endl;
 			std::cout << "SIZE = " << vClient_socket.size() << std::endl;
-			if (FD_ISSET(i, &this->read_sockets))
+			if (FD_ISSET(vClient_socket[i], &this->read_sockets))
 			{
 				std::cout << "read ===========" << std::endl;
 				readSocket(i);
 			}
-			if (FD_ISSET(i, &this->write_sockets))
+			if (FD_ISSET(vClient_socket[i], &this->write_sockets))
 			{
 				std::cout << "write ===========" << std::endl;
 				responder(i);
