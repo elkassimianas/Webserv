@@ -19,6 +19,7 @@ void	Server::creatSocket(int domain, int service, int protocol,
 void	Server::initialize_current_sockets(void)
 {
 	FD_ZERO(&this->current_sockets);
+	FD_ZERO(&this->second_sockets);
 	FD_SET(this->server_socket, &this->current_sockets);
 }
 
@@ -41,12 +42,15 @@ void	Server::readSocket(int index)
 	ParsingRequest	objRequest = this->map_Clients[vClient_socket[index]];
 	std::string		request = objRequest.get_request();
 	bzero(&buf, 1025);
-	while(recv(vClient_socket[index], &buf, 1024, 0) > 0)
+	if (recv(vClient_socket[index], &buf, 1024, 0) < 0)
 	{
-		std::cout << buf << std::endl;
-		request += buf;
-		objRequest.set_request(request);
+		std::cout << "recv error" << std::endl;
+		exit(EXIT_FAILURE);
 	}
+	std::cout << buf << std::endl;
+	request += buf;
+	objRequest.set_request(request);
+
 	if (check_header(request))
 	{
 		objRequest.set_request(strtok(&request[0], "$"));
@@ -63,7 +67,7 @@ void	Server::selecter(void)
 {
 	// because select is destructive
 	this->read_sockets = this->current_sockets;
-	this->write_sockets = this->current_sockets;
+	this->write_sockets = this->second_sockets;
 	int maxFd;
 
 	maxFd = (this->vClient_socket.empty()) ? this->server_socket: this->vClient_socket.back();
@@ -93,10 +97,16 @@ void	Server::accepter(void)
 
 void	Server::responder(int index)
 {
-	std::string rep = "HTTP/1.1  200 OK\r\nContent-Type: text/html\r\nContent-Length: 37\r\n\r\n<html><body><h2>ok</h2></body></html>";
-	send(vClient_socket[index], rep.c_str(), rep.length(), 0);
+	std::string rep = "HTTP/1.1  200 OK\r\nContent-Type: text/html\r\nContent-Length: 37\r\nConnection: close\r\n\r\n<html><body><h2>ok</h2></body></html>";
+	if (send(vClient_socket[index], rep.c_str(), rep.length(), 0) < 0)
+	{
+		std::cout << "send error" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 	close(vClient_socket[index]);
+	FD_CLR(vClient_socket[index], &this->second_sockets);
 	FD_CLR(vClient_socket[index], &this->current_sockets);
+	this->map_Clients.erase(this->vClient_socket[index]);
 	vClient_socket.erase(vClient_socket.begin() + index);
 }
 
@@ -109,18 +119,20 @@ void	Server::launch(void)
 		accepter();
 		for(size_t i = 0; i < vClient_socket.size(); i++)
 		{
-			std::cout << "start loop" << std::endl;
-			std::cout << "SIZE = " << vClient_socket.size() << std::endl;
+			//std::cout << "start loop" << std::endl;
+		//	std::cout << "SIZE = " << vClient_socket.size() << std::endl;
 			if (FD_ISSET(vClient_socket[i], &this->read_sockets))
 			{
-				std::cout << "read ===========" << std::endl;
+				std::cout << "read ===========" << i << std::endl;
 				readSocket(i);
+				FD_CLR(vClient_socket[i], &this->current_sockets);
+				FD_SET(vClient_socket[i], &this->second_sockets);
 			}
-			if (FD_ISSET(vClient_socket[i], &this->write_sockets))
+			else if (FD_ISSET(vClient_socket[i], &this->write_sockets))
 			{
-				std::cout << "write ===========" << std::endl;
+				std::cout << "write ===========" << i << std::endl;
 				responder(i);
-				break ;
+				// break ;
 			}
 		}
 		std::cout << "============  DONE 	=============" << std::endl;

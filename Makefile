@@ -9,7 +9,7 @@ INCLUDES = ./srcs/server/Server.hpp \
 		   ./srcs/socket/SimpleSocket.hpp \
 		   ./srcs/parsing/HttpRequest/ParsingRequest.hpp
 
-FLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address
+FLAGS = -g -Wall -Wextra -Werror -std=c++98 -fsanitize=address
 
 CC = c++
 

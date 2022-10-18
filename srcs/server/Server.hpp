@@ -18,6 +18,7 @@ class Server
 		int								server_socket;
 		fd_set							read_sockets;
 		fd_set							current_sockets;
+		fd_set							second_sockets;
 		fd_set							write_sockets;
 
 	public:
