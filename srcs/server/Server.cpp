@@ -27,11 +27,9 @@ bool	Server::check_header(std::string &request)
 {
 	size_t pos;
 
-//	std::cout << request << std::endl;
 	if((pos = request.find("\r\n\r\n")) == std::string::npos)
 		return (false);
-    request.replace(pos + 2, pos + 3, 1, '$');
-//	std::cout << request << std::endl;
+    request.replace(pos, pos,1, '$');
 	return (true);
 }
 
@@ -47,19 +45,17 @@ void	Server::readSocket(int index)
 		std::cout << "recv error" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	std::cout << buf << std::endl;
 	request += buf;
-	objRequest.set_request(request);
-
 	if (check_header(request))
 	{
 		objRequest.set_request(strtok(&request[0], "$"));
 		body = strtok(NULL, "$");
 		objRequest.start_parsing();
 		if (body != NULL)
-			std::cout << body << std::endl;
+		{
+			std::cout << "inside body" << std::endl;
+		}
 	}
-//	std::cout << request << std::endl;
 	bzero(&buf, 1025);
 }
 
@@ -114,27 +110,22 @@ void	Server::launch(void)
 {
 	while(true)
 	{
-		std::cout << "============ WAITING 	=============" << std::endl;
+		//std::cout << "============ WAITING 	=============" << std::endl;
 		selecter();
 		accepter();
 		for(size_t i = 0; i < vClient_socket.size(); i++)
 		{
-			//std::cout << "start loop" << std::endl;
-		//	std::cout << "SIZE = " << vClient_socket.size() << std::endl;
 			if (FD_ISSET(vClient_socket[i], &this->read_sockets))
 			{
-				std::cout << "read ===========" << i << std::endl;
 				readSocket(i);
 				FD_CLR(vClient_socket[i], &this->current_sockets);
 				FD_SET(vClient_socket[i], &this->second_sockets);
 			}
 			else if (FD_ISSET(vClient_socket[i], &this->write_sockets))
 			{
-				std::cout << "write ===========" << i << std::endl;
 				responder(i);
-				// break ;
 			}
 		}
-		std::cout << "============  DONE 	=============" << std::endl;
+	//	std::cout << "============  DONE 	=============" << std::endl;
 	}
 }

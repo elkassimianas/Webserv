@@ -14,13 +14,14 @@ void    ParsingRequest::start_parsing(void)
 {
     char *request_ln;
     char *header_fiel;
+    size_t  index;
 
-    // if((pos = this->request.find("\r\n\")) == std::string::npos)
-	// 	return (false);
-    request.replace(request.end(), request.end(), 1, '$');
     //std::cout << "REQUEST START PARSING \n" << request << std::endl;;
+    index = this->request.find("\r\n");
     request_ln = strtok(&this->request[0], "\r\n");
-    header_fiel = strtok(NULL, "$");
+ //   std::cout << "request line :: \n" << request_ln << std::endl;
+    header_fiel = strtok(&this->request[index + 2], "$");
+  //  std::cout << "header fields :: \n" << header_fiel << std::endl;
     request_line(request_ln);
     header_fields(header_fiel);
 }
@@ -64,36 +65,40 @@ void    ParsingRequest::request_line(char *request_line)
 void    ParsingRequest::header_fields(char *header_fields)
 {
     char *token;
-    int check = 0;
-    std::string compare[4] = {"Content-Length", "Content-Type", "Host", "Connection"};
+    std::string token_string;
+    int check;
+    std::string compare[9] = {"Content-Length", "Content-Type", "Host", "Connection", "Accept", "Cache-Control", "Postman-Token", "Accept-Encoding", "User-Agent"};
 
+    check = 0;
     if (header_fields == NULL)
     {
         std::cout << "RESPONSE 400" << std::endl;
     }
-   // std::cout << "HEADER FIELDS \n" << header_fields << std::endl;
-    while (header_fields && strcmp(header_fields, "\r\n") != 0)
+    while (strcmp(header_fields, "\r\n") != 0)
     {
-        token = strtok(header_fields, "\r\n");
-        for(int i = 0; i < 4; i++)
+        
+        //sstd::cout << "header_fields :: " << header_fields << std::endl << std::endl;
+        if (check == 0)
         {
-         //   std::cout << "Inside the for" << std::endl;
-//std::cout << "TOKEN :: |" << token << "|"<< std::endl;
-          //  std::cout << "compare:: |" << compare[i] << "|" << std::endl;
-
-            if (std::string(token).find(compare[i]) != std::string::npos)
+            token = strtok(header_fields, "\r\n");
+          //  std::cout << "Token :: " << token << std::endl << std::endl;
+            check = 1;
+        }
+        for(int index = 0; index < 9; index++)
+        {
+            if (std::string(token).find(compare[index]) != std::string::npos)
             {
-                header_fields = strtok(NULL, "\r\n");
-                strtok(token, ":");
-                this->fields[i] = strtok(NULL, "\r\n");
-              //  std::cout << "TOKEN :: " << this->fields[i] << std::endl;
-               // std::cout << "I ::" << i << std::endl; 
-                check  = 1;
+                if (header_fields == NULL)
+                {
+                    std::cout << "RESPONSE 400" << std::endl;
+                }
+                token_string = std::string(token);
+                token_string.erase(0, token_string.find(":") + 1);
+                this->fields[index] = token_string;
             }
         }
-        if (check == 0)
-            header_fields = strtok(NULL, "\n");
-        check = 0;
+        if (!(token = strtok(NULL, "\r\n")))
+            break ;
     }
     return ;
 }

@@ -11,7 +11,12 @@ enum HTTPfields
     Content_Length,
     Content_Type,
     Host,
-    Connection
+    Connection,
+    Accept,
+    Cache_Control,
+    Postman_Token,
+    Accept_Encoding,
+    User_Agent
 };
 
 
